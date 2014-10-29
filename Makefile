@@ -18,17 +18,36 @@
 #
 # END_COPYRIGHT
 ##
+# You need SciDB installed with its development packages.
+ifeq ($(SCIDB),) 
+  X := $(shell which scidb 2>/dev/null)
+  ifneq ($(X),)
+    X := $(shell dirname ${X})
+    SCIDB := $(shell dirname ${X})
+  endif
+  $(info SciDB installed at $(SCIDB))
+endif
 
-# You'll need SciDB installed with its development packages.
-# Example: make SCIDB=/opt/scidb/13.12
+# A development environment will have SCIDB_VER defined, and SCIDB
+# will not be in the same place... but the 3rd party directory *will*
+# be, so build it using SCIDB_VER .
+ifeq ($(SCIDB_VER),)
+  SCIDB_3RDPARTY = $(SCIDB)/3rdparty
+else
+  SCIDB_3RDPARTY = /opt/scidb/$(SCIDB_VER)/3rdparty
+endif
 
-CFLAGS=-pedantic -W -Wextra -Wall -Wno-strict-aliasing -Wno-long-long -Wno-unused-parameter -fPIC -D__STDC_FORMAT_MACROS -Wno-system-headers -isystem -O2 -g -DNDEBUG -ggdb3  -D__STDC_LIMIT_MACROS
+# Include the OPTIMIZED flags for non-debug use
+OPTIMIZED=-O2 -DNDEBUG
+DEBUG=-g -ggdb3
+CFLAGS = -pedantic -W -Wextra -Wall -Wno-variadic-macros -Wno-strict-aliasing \
+         -Wno-long-long -Wno-unused-parameter -fPIC $(OPTIMIZED) 
+INC = -I. -DPROJECT_ROOT="\"$(SCIDB)\"" -I"$(SCIDB_3RDPARTY)/boost/include/" \
+      -I"$(SCIDB)/include" -I./extern
 
-INC=-I. -DPROJECT_ROOT="\"$(SCIDB)\"" -I"$(SCIDB)/include" -I./extern
-LIBS=-shared -Wl,-soname,libr_exec.so -L. -lm -lcrypt -ldl
-
-#INC=-I. -DPROJECT_ROOT="\"$(SCIDB)\"" -I"$(SCIDB)/include" -I"$(BOOST_LOCATION)" -I/usr/include/R -I/home/apoliakov/R/x86_64-redhat-linux-gnu-library/3.0/Rcpp/include -I/home/apoliakov/R/x86_64-redhat-linux-gnu-library/3.0/RInside/include
-#LIBS=-shared -Wl,-soname,libr_exec.so,-rpath,/home/apoliakov/R/x86_64-redhat-linux-gnu-library/3.0/RInside/lib -L. -lm -L/usr/lib64/R/lib -lR  -L/usr/lib64/R/lib -lRblas -L/usr/lib64/R/lib -lRlapack -L/home/apoliakov/R/x86_64-redhat-linux-gnu-library/3.0/Rcpp/lib -lRcpp -Wl,-rpath,/home/apoliakov/R/x86_64-redhat-linux-gnu-library/3.0/Rcpp/lib -L/home/apoliakov/R/x86_64-redhat-linux-gnu-library/3.0/RInside/lib -lRInside  
+LIBS = -shared -Wl,-soname,libr_exec.so -ldl -lm -lcrypt -L. \
+       -L"$(SCIDB)/3rdparty/boost/lib" -L"$(SCIDB)/lib" \
+       -Wl,-rpath,$(SCIDB)/lib:$(RPATH)
 
 all: Rcon
 	@if test ! -d "$(SCIDB)"; then echo  "Error. Try:\n\nmake SCIDB=<PATH TO SCIDB INSTALLATION>\n\nBe sure to have the SciDB development packages installed on your system."; exit 1; fi 
@@ -43,15 +62,13 @@ all: Rcon
 	                           PhysicalRExec.cpp.o \
 	                           Rconnection.cpp.o \
 	                           $(LIBS)
+	@echo
+	@echo "Now run"
+	@echo "  cp *.so $(SCIDB)/lib/scidb/plugins"
+	@echo "on *all* your SciDB nodes and restart SciDB."
 
 Rcon:
 	$(CXX) $(CFLAGS) $(INC) -o Rconnection.cpp.o -c Rconnection.cpp
 
 clean:
 	rm -f *.o *.so
-
-install:
-	cp libr_exec.so "$(SCIDB)/lib/scidb/plugins"
-
-uninstall:
-	rm -f "$(SCIDB)/lib/scidb/plugins/libr_exec.so"
