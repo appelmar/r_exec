@@ -79,8 +79,12 @@ public:
         outputAttributes = addEmptyTagAttribute(outputAttributes);
         Dimensions outputDimensions;
         outputDimensions.push_back(DimensionDesc("inst", 0, query->getInstancesCount()-1, 1, 0)); 
-		outputDimensions.push_back(DimensionDesc("n",    0, CoordinateBounds::getMax(), settings.outputChunkSize(), 0)); // -> SciDB 15.7
-		return ArrayDesc(inputSchema.getName(), outputAttributes, outputDimensions,defaultPartitioning()); // -> SciDB 15.7
+	outputDimensions.push_back(DimensionDesc("n",    0, CoordinateBounds::getMax(), settings.outputChunkSize(), 0)); // -> SciDB 15.7
+		
+              
+    
+            return ArrayDesc ( inputSchema.getName(), outputAttributes, outputDimensions, createDistribution(psUndefined) ,  query->getDefaultArrayResidency()); // -> SciDB 15.12  
+
     }
 };
 

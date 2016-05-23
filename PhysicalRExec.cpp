@@ -125,10 +125,11 @@ public:
         return true;
     }
 
-	virtual RedistributeContext getOutputDistribution(vector<RedistributeContext> const& inputDistributions,
-													vector<ArrayDesc> const& inputSchemas) const
+	virtual RedistributeContext getOutputDistribution(vector<RedistributeContext> const& inputDistributions, vector<ArrayDesc> const& inputSchemas) const
     {
-       return RedistributeContext(psUndefined);
+       //return RedistributeContext(psUndefined);
+       return RedistributeContext(_schema.getDistribution(),_schema.getResidency());
+
     }
 
     std::shared_ptr< Array> execute(vector< std::shared_ptr< Array> >& inputArrays, std::shared_ptr<Query> query)
